@@ -1,0 +1,35 @@
+﻿Build started 2016/11/19 17:52:18.
+     1>Project "S:\easerpc\easerpc\easerpc\easerpc.vcxproj" on node 2 (Rebuild target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /IS:\easerpc\easerpc\easerpc\..\util /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _CRT_SECURE_NO_WARNINGS /D _WINDLL /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TC /analyze- /errorReport:prompt ..\util\cJSON.c ..\util\cJSON_test.c ..\util\cJSON_Utils.c ..\util\event.c ..\util\lock.c ..\util\seq.c ..\util\shared_block.c
+         shared_block.c
+         seq.c
+         lock.c
+         event.c
+         cJSON_Utils.c
+         cJSON_test.c
+         cJSON.c
+         Generating Code...
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /IS:\easerpc\easerpc\easerpc\..\util /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _CRT_SECURE_NO_WARNINGS /D _WINDLL /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\util\timer.cpp easerpc.cpp
+         easerpc.cpp
+     1>s:\easerpc\easerpc\easerpc\easerpc.cpp(261): warning C4102: 'rpc_initialize_ok' : unreferenced label
+     1>s:\easerpc\easerpc\easerpc\easerpc.cpp(374): warning C4805: '==' : unsafe mix of type 'volatile BOOL' and type 'bool' in operation
+         timer.cpp
+         Generating Code...
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"S:\easerpc\easerpc\Debug\easerpc.dll" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"S:\easerpc\easerpc\Debug\easerpc.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"S:\easerpc\easerpc\Debug\easerpc.lib" /MACHINE:X86 /DLL Debug\cJSON.obj
+         Debug\cJSON_test.obj
+         Debug\cJSON_Utils.obj
+         Debug\event.obj
+         Debug\lock.obj
+         Debug\seq.obj
+         Debug\shared_block.obj
+         Debug\timer.obj
+         Debug\easerpc.obj
+            Creating library S:\easerpc\easerpc\Debug\easerpc.lib and object S:\easerpc\easerpc\Debug\easerpc.exp
+         easerpc.vcxproj -> S:\easerpc\easerpc\Debug\easerpc.dll
+     1>Done Building Project "S:\easerpc\easerpc\easerpc\easerpc.vcxproj" (Rebuild target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:02.59

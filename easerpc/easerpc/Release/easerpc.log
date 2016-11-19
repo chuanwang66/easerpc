@@ -1,0 +1,35 @@
+﻿Build started 2016/11/19 17:52:09.
+     1>Project "S:\easerpc\easerpc\easerpc\easerpc.vcxproj" on node 2 (Rebuild target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /IS:\easerpc\easerpc\easerpc\..\util /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D _CRT_SECURE_NO_WARNINGS /D _WINDLL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TC /analyze- /errorReport:prompt ..\util\cJSON.c ..\util\cJSON_test.c ..\util\cJSON_Utils.c ..\util\event.c ..\util\lock.c ..\util\seq.c ..\util\shared_block.c
+         cJSON.c
+         cJSON_test.c
+         cJSON_Utils.c
+         event.c
+         lock.c
+         seq.c
+         shared_block.c
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /IS:\easerpc\easerpc\easerpc\..\util /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D _CRT_SECURE_NO_WARNINGS /D _WINDLL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\util\timer.cpp easerpc.cpp
+         timer.cpp
+         easerpc.cpp
+     1>easerpc.cpp(261): warning C4102: 'rpc_initialize_ok' : unreferenced label
+     1>easerpc.cpp(374): warning C4805: '==' : unsafe mix of type 'volatile BOOL' and type 'bool' in operation
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"S:\easerpc\easerpc\Release\easerpc.dll" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"S:\easerpc\easerpc\Release\easerpc.pdb" /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"S:\easerpc\easerpc\Release\easerpc.lib" /MACHINE:X86 /SAFESEH /DLL Release\cJSON.obj
+         Release\cJSON_test.obj
+         Release\cJSON_Utils.obj
+         Release\event.obj
+         Release\lock.obj
+         Release\seq.obj
+         Release\shared_block.obj
+         Release\timer.obj
+         Release\easerpc.obj
+            Creating library S:\easerpc\easerpc\Release\easerpc.lib and object S:\easerpc\easerpc\Release\easerpc.exp
+         Generating code
+         Finished generating code
+         easerpc.vcxproj -> S:\easerpc\easerpc\Release\easerpc.dll
+     1>Done Building Project "S:\easerpc\easerpc\easerpc\easerpc.vcxproj" (Rebuild target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:02.81
