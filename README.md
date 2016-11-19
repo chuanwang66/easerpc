@@ -1,0 +1,2 @@
+# easerpc
+interprocess rpc stub
