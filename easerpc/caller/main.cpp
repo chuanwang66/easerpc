@@ -4,7 +4,7 @@
 
 #include "easerpc.h"
 
-#define REQUEST_THREAD_NUM 1
+#define REQUEST_THREAD_NUM 3
 
 static short cid = -1;
 static short sid = -1;

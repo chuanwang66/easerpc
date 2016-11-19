@@ -1,4 +1,4 @@
-﻿Build started 2016/11/19 17:52:12.
+﻿Build started 2016/11/19 18:20:50.
      1>Project "S:\easerpc\easerpc\callee\callee.vcxproj" on node 3 (Rebuild target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /IS:\easerpc\easerpc\callee\..\util /IS:\easerpc\easerpc\callee\..\easerpc /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D _CRT_SECURE_NO_WARNINGS /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TC /analyze- /errorReport:prompt ..\util\cJSON.c ..\util\cJSON_Utils.c
@@ -19,4 +19,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:01.28
+Time Elapsed 00:00:01.10

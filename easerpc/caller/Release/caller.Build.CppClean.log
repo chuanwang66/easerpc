@@ -1,11 +1,7 @@
-s:\rpc\easerpc\caller\release\vc120.pdb
-s:\rpc\easerpc\caller\release\main.obj
-s:\rpc\easerpc\release\caller.exe
-s:\rpc\easerpc\release\caller.pdb
-s:\easerpc\easerpc\caller\release\main.obj
 s:\easerpc\easerpc\caller\release\vc120.pdb
-s:\easerpc\easerpc\release\caller.pdb
+s:\easerpc\easerpc\caller\release\main.obj
 s:\easerpc\easerpc\release\caller.exe
+s:\easerpc\easerpc\release\caller.pdb
 s:\easerpc\easerpc\caller\release\caller.tlog\cl.command.1.tlog
 s:\easerpc\easerpc\caller\release\caller.tlog\cl.read.1.tlog
 s:\easerpc\easerpc\caller\release\caller.tlog\cl.write.1.tlog
