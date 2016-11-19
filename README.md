@@ -3,8 +3,6 @@ interprocess rpc stub (Windows)
 ===
 * Windows supported
 * built & run in VS2013
-===
-test:
 * start up rpc stub 2
 >callee.exe 2
 rpc stub id: 2, 's'(start stub), 't'(stop stub) ...
