@@ -8,7 +8,7 @@
 #include "cJSON.h"
 #include "easerpc.h"
 
-void add(const char *arg, char *res, int maxsize) {
+void add(const char *arg, char *res, unsigned int res_maxsize) {
 	//1. parse
 	cJSON *arg_json = cJSON_Parse(arg);
 	int param1 = cJSON_GetObjectItem(arg_json, "param1")->valueint;
@@ -22,9 +22,10 @@ void add(const char *arg, char *res, int maxsize) {
 	cJSON *res_json = cJSON_CreateObject();
 	cJSON_AddNumberToObject(res_json, "code", RPC_RESCODE_SUCCESS);
 	cJSON_AddNumberToObject(res_json, "sum", sum);
+	cJSON_AddNumberToObject(res_json, "tid", GetCurrentThreadId());
 	char *res_str = cJSON_Print(res_json);
 
-	int num = min(maxsize - 1, strlen(res_str));
+	int num = min(res_maxsize - 1, strlen(res_str));
 	memcpy(res, res_str, num);
 	res[num] = 0;
 	
@@ -32,11 +33,11 @@ void add(const char *arg, char *res, int maxsize) {
 	cJSON_Delete(res_json);
 }
 
-void dec(const char *command, char *res, int maxsize) {
+void dec(const char *command, char *res, unsigned int res_maxsize) {
 	char res_str[128];
 	sprintf(res_str, "{code=%d}", RPC_RESCODE_SUCCESS);
 
-	int num = min(maxsize - 1, strlen(res_str));
+	int num = min(res_maxsize - 1, strlen(res_str));
 	memcpy(res, res_str, num);
 	res[num] = 0;
 }

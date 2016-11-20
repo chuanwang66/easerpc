@@ -45,6 +45,18 @@
     <ClInclude Include="easerpc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\util\WindowsThreadPool\ThreadPool.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\util\WindowsThreadPool\ThreadPoolTimer.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\util\WindowsThreadPool\ThreadPoolWait.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\util\WindowsThreadPool\ThreadPoolWork.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\util\cJSON.c">
@@ -73,6 +85,18 @@
     </ClCompile>
     <ClCompile Include="easerpc.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\util\WindowsThreadPool\ThreadPool.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\util\WindowsThreadPool\ThreadPoolTimer.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\util\WindowsThreadPool\ThreadPoolWait.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\util\WindowsThreadPool\ThreadPoolWork.cpp">
+      <Filter>Source Files\util</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

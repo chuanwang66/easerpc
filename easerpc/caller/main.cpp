@@ -1,6 +1,7 @@
 //client side
 #include <Windows.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "easerpc.h"
 
@@ -13,7 +14,7 @@ static DWORD CALLBACK request_proc(LPVOID param) {
 
 	char response[128];
 	int ret;
-	int req_cnt = 10;
+	int req_cnt = MAXINT;
 
 	while (req_cnt-- > 0) {
 		ret = rpc_request2(
@@ -22,10 +23,10 @@ static DWORD CALLBACK request_proc(LPVOID param) {
 			"add",				//fname
 			"{\"param1\":2, \"param2\":3}", //arguments
 			response,
-			sizeof(response));
+			sizeof(response), -1);
 		printf("tid=%d: ret=%d, response: %s\n", GetCurrentThreadId(), ret, ret == 0 ? response : "invalid");
 
-		Sleep(1);
+		//Sleep(1);
 	}
 	return 0;
 }

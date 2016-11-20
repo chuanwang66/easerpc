@@ -10,6 +10,7 @@
 #include "lock.h"
 #include "seq.h"
 #include "shared_block.h"
+#include "WindowsThreadPool\ThreadPool.h"
 
 const unsigned long SBLOCK_SIZE = 1024;	//shared memory size
 
@@ -25,21 +26,23 @@ const unsigned long SBLOCK_SIZE = 1024;	//shared memory size
 #define CLI_EVENT_OBJNAME "Local\\rpc_client_event%d"
 #define CLI_SBLOCK_OBJNAME "Local\\rpc_client_sblock%d"
 
-////////////////////////////// rpc server stub //////////////////////////////
-
 /* function registry */
 #define MAX_FUNC_NO 256
 static int func_no = 0;
 
-//std::map<..., func pointer> cannot be used in stl with ease :(
 static void *func_lock = NULL;
 static bool func_valid_array[MAX_FUNC_NO];
 static std::string func_name_array[MAX_FUNC_NO];
-static void(*func_pointer_array[MAX_FUNC_NO])(const char *, char *, int);
+static void(*func_pointer_array[MAX_FUNC_NO])(const char *, char *, unsigned int);	//std::map<..., func pointer> cannot be used in stl with ease :(
 
-/* server stub thread */
+/* server stub thread -- accept request(s) from client stub*/
 static HANDLE thread_handle = NULL;
-static volatile BOOL thread_stop = false;
+static volatile bool thread_stop = false;
+
+/* server worker thread pool*/
+#define WORKERS_MIN_NUM 2
+#define WORKERS_MAX_NUM 10
+static ThreadPool *workers_pool = NULL;
 
 /* server stub objects */
 void *server_sblock_lock = NULL;
@@ -51,13 +54,13 @@ void *client_sblock_lock = NULL;
 void *client_sblock_event = NULL;
 shared_block client_sblock;
 
-/* current stub id, acting as both a server stub and a client stub*/
-static short server_id = -1;
+/* current node id, acting as both a server stub and a client stub*/
+static short node_id = -1;
 
 static int rpc_response(short sid, short cid, const char *response, const char *ctx, int seq);
 
-static DWORD CALLBACK worker_thread_proc(LPVOID param) {
-	cJSON *request_json = (cJSON *)param;
+static void worker_routine() {
+	cJSON *request_json = cJSON_Parse((const char *)server_sblock.view);
 
 	short cid = cJSON_GetObjectItem(request_json, "cid")->valueint;
 	short sid = cJSON_GetObjectItem(request_json, "sid")->valueint;
@@ -71,7 +74,7 @@ static DWORD CALLBACK worker_thread_proc(LPVOID param) {
 	res[0] = 0;
 
 	//find function by name
-	void(*fp)(const char *, char *, int) = NULL;
+	void(*fp)(const char *, char *, unsigned int) = NULL;
 	lock_lock(func_lock);
 	for (int i = 0; i < MAX_FUNC_NO; ++i) {
 		if (func_valid_array[i] == true && func_name_array[i].compare(fn) == 0) {
@@ -87,46 +90,17 @@ static DWORD CALLBACK worker_thread_proc(LPVOID param) {
 		sprintf(res, "{code=%d}", RPC_RESCODE_NOT_FOUND);
 		printf("function [%s] not found.\n", fn);
 	}
-	
+
 	rpc_response(sid, cid, res, ctx, seq);
 
 	free(res);
 	res = NULL;
 	cJSON_Delete(request_json);
 	request_json = NULL;
-	return 0;
-}
-
-static void process_function(char *sblock_str, short server_id) {
-	cJSON *request_json = cJSON_Parse(sblock_str);
-
-	HANDLE worker_thread_handle = CreateThread(NULL, 0, worker_thread_proc, (LPVOID)request_json, 0, NULL);
-	if (worker_thread_handle && worker_thread_handle != INVALID_HANDLE_VALUE) {
-		CloseHandle(worker_thread_handle);	//the worker thread is still running, but cannot be manifested
-	}
-	else {
-		static char res[128];
-		printf("create worker thread failed [%d].\n", GetLastError());
-
-		short cid = cJSON_GetObjectItem(request_json, "cid")->valueint;
-		short sid = cJSON_GetObjectItem(request_json, "sid")->valueint;
-		int seq = cJSON_GetObjectItem(request_json, "seq")->valueint;
-		const char *ctx = cJSON_GetObjectItem(request_json, "ctx") ?
-			cJSON_GetObjectItem(request_json, "ctx")->valuestring : 0;
-
-		sprintf(res, "{code=%d}", RPC_RESCODE_FAIL);
-		rpc_response(sid, cid, res, ctx, seq);
-
-		cJSON_Delete(request_json);
-		request_json = NULL;
-	}
 	return;
 }
 
 static DWORD CALLBACK thread_proc(LPVOID param) {
-	short sid = (short)param;
-	server_id = sid;
-
 	while (!thread_stop) {
 		event_wait(server_sblock_event); //blocking wait
 
@@ -134,7 +108,9 @@ static DWORD CALLBACK thread_proc(LPVOID param) {
 			break;
 
 		lock_lock(server_sblock_lock);
-		process_function((char *)server_sblock.view, server_id);	//process in a seperate thread to avoid blocking
+		std::function<void()> work_item = worker_routine;
+		workers_pool->SubmitCallback(work_item);
+
 		lock_unlock(server_sblock_lock);
 
 		event_reset(server_sblock_event);
@@ -143,7 +119,7 @@ static DWORD CALLBACK thread_proc(LPVOID param) {
 	return 0;
 }
 
-int rpc_initialize(short sid) {
+int rpc_initialize(short nid) {
 	int ret = 0;
 
 	if (thread_handle && thread_handle != INVALID_HANDLE_VALUE) {
@@ -159,19 +135,19 @@ int rpc_initialize(short sid) {
 	char client_sblock_event_name[SHARED_OBJ_SIZE];
 	char client_sblock_name[SHARED_OBJ_SIZE];
 
-	sprintf_s(server_sblock_lock_name, SRV_LOCK_OBJNAME, sid);
-	sprintf_s(server_sblock_event_name, SRV_EVENT_OBJNAME, sid);
-	sprintf_s(server_sblock_name, SRV_SBLOCK_OBJNAME, sid);
+	sprintf_s(server_sblock_lock_name, SRV_LOCK_OBJNAME, nid);
+	sprintf_s(server_sblock_event_name, SRV_EVENT_OBJNAME, nid);
+	sprintf_s(server_sblock_name, SRV_SBLOCK_OBJNAME, nid);
 
-	sprintf_s(client_sblock_lock_name, CLI_LOCK_OBJNAME, sid);
-	sprintf_s(client_sblock_event_name, CLI_EVENT_OBJNAME, sid);
-	sprintf_s(client_sblock_name, CLI_SBLOCK_OBJNAME, sid);
+	sprintf_s(client_sblock_lock_name, CLI_LOCK_OBJNAME, nid);
+	sprintf_s(client_sblock_event_name, CLI_EVENT_OBJNAME, nid);
+	sprintf_s(client_sblock_name, CLI_SBLOCK_OBJNAME, nid);
 
-	//check existence of the same stub id
+	//check existence of the same node id
 	{
 		void *tmp_lock = lock_open(server_sblock_lock_name);
 		if (tmp_lock) {
-			printf("stub id %d already exists.\n", sid);
+			printf("node %d already exists.\n", nid);
 			lock_close(tmp_lock);
 			return -2;
 		}
@@ -180,7 +156,7 @@ int rpc_initialize(short sid) {
 	//rpc function registry
 	func_lock = lock_create(NULL);
 	if (func_lock == NULL) {
-		printf("create server function lock failed.\n");
+		printf("create rpc function lock failed.\n");
 		return -3;
 	}
 
@@ -212,51 +188,61 @@ int rpc_initialize(short sid) {
 
 	server_sblock_lock = lock_create(server_sblock_lock_name);
 	if (server_sblock_lock == NULL) {
-		printf("rpc_server_initialize() failed: create server lock failed.\n");
+		printf("rpc_initialize() failed: create server lock failed.\n");
 		ret = -4;
 		goto rpc_initialize_fail;
 	}
 	server_sblock_event = event_create(EVENT_TYPE_MANUAL, server_sblock_event_name);
 	if (server_sblock_event == NULL) {
-		printf("rpc_server_initialize() failed: create server event failed.\n");
+		printf("rpc_initialize() failed: create server event failed.\n");
 		ret = -5;
 		goto rpc_initialize_fail;
 	}
 
 	if (shared_block_create(&server_sblock, server_sblock_name, SBLOCK_SIZE) != 0) {
-		printf("rpc_server_initialize() failed: create server block failed.\n");
+		printf("rpc_initialize() failed: create server block failed.\n");
 		ret = -6;
 		goto rpc_initialize_fail;
 	}
 
 	client_sblock_lock = lock_create(client_sblock_lock_name);
 	if (client_sblock_lock == NULL) {
-		printf("rpc_server_initialize() failed: create client lock failed.\n");
+		printf("rpc_initialize() failed: create client lock failed.\n");
 		ret = -7;
 		goto rpc_initialize_fail;
 	}
 	client_sblock_event = event_create(EVENT_TYPE_MANUAL, client_sblock_event_name);
 	if (client_sblock_event == NULL) {
-		printf("rpc_server_initialize() failed: create client event failed.\n");
+		printf("rpc_initialize() failed: create client event failed.\n");
 		ret = -8;
 		goto rpc_initialize_fail;
 	}
 
 	if (shared_block_create(&client_sblock, client_sblock_name, SBLOCK_SIZE) != 0) {
-		printf("rpc_server_initialize() failed: create client block failed.\n");
+		printf("rpc_initialize() failed: create client block failed.\n");
 		ret = -9;
+		goto rpc_initialize_fail;
+	}
+
+	//start rpc server worker threads (thread pool)
+	workers_pool = new ThreadPool(WORKERS_MIN_NUM, WORKERS_MAX_NUM);
+	if (workers_pool == NULL) {
+		printf("rpc_initialize() failed: create workers thread pool failed.\n");
+		ret = -10;
 		goto rpc_initialize_fail;
 	}
 
 	//start rpc server stub thread
 	thread_stop = false;
-	thread_handle = CreateThread(NULL, 10 * 1024 * 1024, thread_proc, (LPVOID)sid, 0, NULL); //default stack size: 1M; we use 10M
+	thread_handle = CreateThread(NULL, 10 * 1024 * 1024, thread_proc, NULL, 0, NULL); //default stack size: 1M; we use 10M
 	if (thread_handle && thread_handle != INVALID_HANDLE_VALUE);
 	else {
-		printf("rpc_server_initialize() failed [%d].\n", GetLastError());
-		ret = -10;
+		printf("rpc_initialize() failed [%d].\n", GetLastError());
+		ret = -11;
 		goto rpc_initialize_fail;
 	}
+
+	node_id = nid;
 
 rpc_initialize_ok:
 	return ret;
@@ -277,6 +263,13 @@ rpc_initialize_fail:
 
 	lock_close(client_sblock_lock);
 	client_sblock_lock = NULL;
+
+	if (workers_pool) {
+		delete workers_pool;
+		workers_pool = NULL;
+	}
+
+	node_id = -1;
 
 	return ret;
 }
@@ -300,7 +293,7 @@ int rpc_register_function(const char *fname, ftype fpointer) {
 		}
 	}
 	if (exist) {
-		printf("function [%s] exists.\n", fname);
+		printf("rpc function [%s] exists.\n", fname);
 		ret = -3;
 		goto rpc_register_fail;
 	}
@@ -327,7 +320,7 @@ int rpc_register_function(const char *fname, ftype fpointer) {
 
 	lock_unlock(func_lock);
 
-	printf("function [%s] registered, function no: %d.\n", fname, pos);
+	printf("rpc function [%s] registered, function no: %d.\n", fname, pos);
 
 	return 0;
 
@@ -353,7 +346,7 @@ int rpc_unregister_function(const char *fname) {
 		}
 	}
 	if (pos == -1) {
-		printf("function [%s] does not exist.\n", fname);
+		printf("rpc function [%s] does not exist.\n", fname);
 		ret = -2;
 		goto rpc_unregister_fail;
 	}
@@ -363,7 +356,7 @@ int rpc_unregister_function(const char *fname) {
 	func_pointer_array[pos] = NULL;
 	func_valid_array[pos] = false;
 
-	printf("function [%s] unregistered, function no: %d.\n", fname, pos);
+	printf("rpc function [%s] unregistered, function no: %d.\n", fname, pos);
 
 rpc_unregister_fail:
 	lock_unlock(func_lock);
@@ -407,11 +400,15 @@ void rpc_destory() {
 	server_sblock_event = NULL;
 	shared_block_close(server_sblock);
 
-	server_id = -1;
+	if (workers_pool) {
+		delete workers_pool;
+		workers_pool = NULL;
+	}
+
+	node_id = -1;
 }
 
-////////////////////////////// rpc reaction //////////////////////////////
-int rpc_request(short cid, short sid, const char *fname, const char *args, char *response, unsigned long response_len) {
+int rpc_request(short cid, short sid, const char *fname, const char *args, char *response, unsigned long response_len, long milliseconds) {
 	const char *ctx = NULL;
 
 	int ret = 0;
@@ -514,11 +511,16 @@ int rpc_request(short cid, short sid, const char *fname, const char *args, char 
 
 	//waiting for response
 	client_event = event_open(client_event_name);
+	event_reset(client_event);	//set the state to "non-signaled", waiting for the server to set it to "signaled"
 	if (client_event == NULL) {
 		ret = -6;
 		goto cleanup_request;
 	}
-	event_wait(client_event);
+
+	if (milliseconds == -1)
+		event_wait(client_event);	//blocking wait
+	else
+		event_timedwait(client_event, 10000);
 
 	/////////////////////////////////////////////////////////////////////////////////// recv response within lock
 	client_lock = lock_open(client_lock_name);
@@ -569,8 +571,10 @@ cleanup_request:
 	cJSON_Delete(response_json);
 	response_json = NULL;
 	shared_block_close(client_sblock);
+
 	event_close(client_event);
 	client_event = NULL;
+
 	lock_close(client_lock);
 	client_lock = NULL;
 
@@ -623,7 +627,7 @@ static int rpc_response(short sid, short cid, const char *response, const char *
 	cJSON_AddNumberToObject(response_json, "seq", seq);
 
 	char *response_str = cJSON_Print(response_json);
-	printf("send response: %s\n", response_str);
+	//printf("send response: %s\n", response_str);
 
 	if (SBLOCK_SIZE < strlen(response_str) + 1) {	//response too long
 		ret = -2;
@@ -642,20 +646,19 @@ static int rpc_response(short sid, short cid, const char *response, const char *
 	memcpy_s(client_sblock.view, SBLOCK_SIZE, response_str, strlen(response_str) + 1);
 	lock_unlock(client_lock);
 	///////////////////////////////////////////////////////////////////////////////////
-
-	client_event = event_open(client_event_name);
-	if (client_event == NULL) {
-		ret = -4;
-		goto cleanup_response;
-	}
-	event_signal(client_event);
 	
 cleanup_response:
+	//ALWAYS signal back!
+	client_event = event_open(client_event_name);	//never fail except the client stub is offline
+	event_signal(client_event);
+
 	cJSON_Delete(response_json);
 	response_json = NULL;
 	shared_block_close(client_sblock);
+
 	event_close(client_event);
 	client_event = NULL;
+
 	lock_close(client_lock);
 	client_lock = NULL;
 
@@ -663,7 +666,7 @@ cleanup_response:
 }
 
 static void *rpc_request_lock = NULL;
-int rpc_request2(short cid, short sid, const char *fname, const char *args, char *response, unsigned long response_len) {
+int rpc_request2(short cid, short sid, const char *fname, const char *args, char *response, unsigned long response_len, long milliseconds) {
 	int ret;
 
 	rpc_request_lock = lock_create(REQ_LOCK_OBJNAME); //create at the first time, otherwise just open
@@ -674,7 +677,7 @@ int rpc_request2(short cid, short sid, const char *fname, const char *args, char
 	}
 
 	lock_lock(rpc_request_lock);
-	ret = rpc_request(cid, sid, fname, args, response, response_len);
+	ret = rpc_request(cid, sid, fname, args, response, response_len, milliseconds);
 	lock_unlock(rpc_request_lock);
 
 rpc_request2_exit:

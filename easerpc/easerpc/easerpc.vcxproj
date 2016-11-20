@@ -75,6 +75,10 @@
     <ClInclude Include="..\util\seq.h" />
     <ClInclude Include="..\util\shared_block.h" />
     <ClInclude Include="..\util\timer.h" />
+    <ClInclude Include="..\util\WindowsThreadPool\ThreadPool.h" />
+    <ClInclude Include="..\util\WindowsThreadPool\ThreadPoolTimer.h" />
+    <ClInclude Include="..\util\WindowsThreadPool\ThreadPoolWait.h" />
+    <ClInclude Include="..\util\WindowsThreadPool\ThreadPoolWork.h" />
     <ClInclude Include="easerpc.h" />
   </ItemGroup>
   <ItemGroup>
@@ -86,6 +90,10 @@
     <ClCompile Include="..\util\seq.c" />
     <ClCompile Include="..\util\shared_block.c" />
     <ClCompile Include="..\util\timer.cpp" />
+    <ClCompile Include="..\util\WindowsThreadPool\ThreadPool.cpp" />
+    <ClCompile Include="..\util\WindowsThreadPool\ThreadPoolTimer.cpp" />
+    <ClCompile Include="..\util\WindowsThreadPool\ThreadPoolWait.cpp" />
+    <ClCompile Include="..\util\WindowsThreadPool\ThreadPoolWork.cpp" />
     <ClCompile Include="easerpc.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

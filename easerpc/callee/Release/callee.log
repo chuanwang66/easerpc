@@ -1,22 +1,20 @@
-﻿Build started 2016/11/19 18:20:50.
-     1>Project "S:\easerpc\easerpc\callee\callee.vcxproj" on node 3 (Rebuild target(s)).
+﻿Build started 2016/11/20 17:16:32.
+     1>Project "S:\easyrpc\easerpc\callee\callee.vcxproj" on node 3 (Rebuild target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /IS:\easerpc\easerpc\callee\..\util /IS:\easerpc\easerpc\callee\..\easerpc /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D _CRT_SECURE_NO_WARNINGS /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TC /analyze- /errorReport:prompt ..\util\cJSON.c ..\util\cJSON_Utils.c
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /IS:\easyrpc\easerpc\callee\..\util /IS:\easyrpc\easerpc\callee\..\easerpc /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D _CRT_SECURE_NO_WARNINGS /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TC /analyze- /errorReport:prompt ..\util\cJSON.c ..\util\cJSON_Utils.c
          cJSON.c
          cJSON_Utils.c
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /IS:\easerpc\easerpc\callee\..\util /IS:\easerpc\easerpc\callee\..\easerpc /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D _CRT_SECURE_NO_WARNINGS /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /IS:\easyrpc\easerpc\callee\..\util /IS:\easyrpc\easerpc\callee\..\easerpc /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D _CRT_SECURE_NO_WARNINGS /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
          main.cpp
-     1>main.cpp(27): warning C4018: '<' : signed/unsigned mismatch
-     1>main.cpp(39): warning C4018: '<' : signed/unsigned mismatch
        Link:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"S:\easerpc\easerpc\Release\callee.exe" /NOLOGO S:\easerpc\easerpc\Release\easerpc.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"S:\easerpc\easerpc\Release\callee.pdb" /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"S:\easerpc\easerpc\Release\callee.lib" /MACHINE:X86 /SAFESEH Release\cJSON.obj
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"S:\easyrpc\easerpc\Release\callee.exe" /NOLOGO S:\easyrpc\easerpc\Release\easerpc.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"S:\easyrpc\easerpc\Release\callee.pdb" /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"S:\easyrpc\easerpc\Release\callee.lib" /MACHINE:X86 /SAFESEH Release\cJSON.obj
          Release\cJSON_Utils.obj
          Release\main.obj
          Generating code
          Finished generating code
-         callee.vcxproj -> S:\easerpc\easerpc\Release\callee.exe
-     1>Done Building Project "S:\easerpc\easerpc\callee\callee.vcxproj" (Rebuild target(s)).
+         callee.vcxproj -> S:\easyrpc\easerpc\Release\callee.exe
+     1>Done Building Project "S:\easyrpc\easerpc\callee\callee.vcxproj" (Rebuild target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:01.10
+Time Elapsed 00:00:01.07
