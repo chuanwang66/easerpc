@@ -16,7 +16,7 @@ void add(const char *arg, char *res, unsigned int res_maxsize) {
 
 	//2. process
 	int sum = param1 + param2;
-	Sleep(1000);
+	//Sleep(1000);
 
 	//3. response
 	cJSON *res_json = cJSON_CreateObject();

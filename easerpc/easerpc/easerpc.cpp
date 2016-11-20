@@ -3,6 +3,7 @@
 #include <windows.h>
 
 #include <map>
+#include <errno.h>
 #include <stdio.h>
 
 #include "cJSON.h"
@@ -517,21 +518,33 @@ int rpc_request(short cid, short sid, const char *fname, const char *args, char 
 		goto cleanup_request;
 	}
 
+	int event_wait_ret;
 	if (milliseconds == -1)
-		event_wait(client_event);	//blocking wait
-	else
-		event_timedwait(client_event, 10000);
+		event_wait_ret = event_wait(client_event);	//blocking wait
+	else {
+		event_wait_ret = event_timedwait(client_event, 10000);	//timeout wait
+	}
+	if (event_wait_ret == EINVAL) {
+		ret = -7;
+		printf("waiting for response error.\n");
+		goto cleanup_request;
+	}
+	else if (event_wait_ret == ETIMEDOUT) {
+		ret = -8;
+		printf("waiting for response timeout.\n");
+		goto cleanup_request;
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////// recv response within lock
 	client_lock = lock_open(client_lock_name);
 	if (client_lock == NULL) {
-		ret = -7;
+		ret = -9;
 		goto cleanup_request;
 	}
 
 	lock_lock(client_lock);
 	if (shared_block_open(&client_sblock, client_sblock_name, SBLOCK_SIZE) != 0) {
-		ret = -8;
+		ret = -10;
 		goto cleanup_request;
 	}
 	memcpy(response_str, client_sblock.view, SBLOCK_SIZE);
@@ -550,7 +563,7 @@ int rpc_request(short cid, short sid, const char *fname, const char *args, char 
 	if (strlen(res_res) + 1 > response_len) {
 		memcpy(response, res_res, response_len - 1);
 		response[response_len - 1] = 0;
-		ret = -9;
+		ret = -11;
 		goto cleanup_request;
 	}
 	memcpy(response, res_res, strlen(res_res));
@@ -627,7 +640,6 @@ static int rpc_response(short sid, short cid, const char *response, const char *
 	cJSON_AddNumberToObject(response_json, "seq", seq);
 
 	char *response_str = cJSON_Print(response_json);
-	//printf("send response: %s\n", response_str);
 
 	if (SBLOCK_SIZE < strlen(response_str) + 1) {	//response too long
 		ret = -2;
@@ -650,14 +662,14 @@ static int rpc_response(short sid, short cid, const char *response, const char *
 cleanup_response:
 	//ALWAYS signal back!
 	client_event = event_open(client_event_name);	//never fail except the client stub is offline
-	event_signal(client_event);
+	int sig_ret = event_signal(client_event);	//TODO sometimes this event would never send back!?
+	if (sig_ret != 0) printf("signal back failed.\n");
+	event_close(client_event);
+	client_event = NULL;
 
 	cJSON_Delete(response_json);
 	response_json = NULL;
 	shared_block_close(client_sblock);
-
-	event_close(client_event);
-	client_event = NULL;
 
 	lock_close(client_lock);
 	client_lock = NULL;

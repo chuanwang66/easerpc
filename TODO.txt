@@ -1,0 +1,3 @@
+TODO. 极少情况下server stub不会把event signal回来，导致client stub一直等
+      建议: rpc_request()时带上超时时间
+TODO. 多线程分request lock

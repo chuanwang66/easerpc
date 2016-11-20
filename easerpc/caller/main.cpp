@@ -5,7 +5,7 @@
 
 #include "easerpc.h"
 
-#define REQUEST_THREAD_NUM 3
+#define REQUEST_THREAD_NUM 5
 
 static short cid = -1;
 static short sid = -1;
@@ -14,17 +14,17 @@ static DWORD CALLBACK request_proc(LPVOID param) {
 
 	char response[128];
 	int ret;
-	int req_cnt = MAXINT;
+	int req_no = 0;
 
-	while (req_cnt-- > 0) {
+	while (req_no++ < MAXINT) {
 		ret = rpc_request2(
 			cid,			//stub id (me)
 			sid,			//stub id (remote)
 			"add",				//fname
 			"{\"param1\":2, \"param2\":3}", //arguments
 			response,
-			sizeof(response), -1);
-		printf("tid=%d: ret=%d, response: %s\n", GetCurrentThreadId(), ret, ret == 0 ? response : "invalid");
+			sizeof(response), 5000);
+		printf("no %d: tid=%d: ret=%d, response: %s\n", req_no, GetCurrentThreadId(), ret, ret == 0 ? response : "invalid");
 
 		//Sleep(1);
 	}
@@ -47,7 +47,9 @@ int main(int argc, char* argv[])
 		exit(3);
 	}
 
-	rpc_initialize(cid);
+	if (rpc_initialize(cid) != 0) {
+		exit(4);
+	}
 	Sleep(500);
 
 	HANDLE request_thread[3];
@@ -57,6 +59,7 @@ int main(int argc, char* argv[])
 
 	//getchar();
 	WaitForMultipleObjects(REQUEST_THREAD_NUM, request_thread, TRUE, INFINITE);
+	printf("finished\n");
 	for (int i = 0; i < REQUEST_THREAD_NUM; ++i) {
 		CloseHandle(request_thread[i]);
 		request_thread[i] = NULL;
