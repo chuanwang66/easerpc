@@ -85,7 +85,13 @@ static void worker_routine() {
 	lock_unlock(func_lock);
 
 	if (fp) {
-		fp((const char *)arg, res, SBLOCK_SIZE);
+		try {
+			fp((const char *)arg, res, SBLOCK_SIZE);
+		}
+		catch (...) {
+			sprintf(res, "{code=%d}", RPC_RESCODE_FAIL);
+			printf("function [%s] execution error.\n", fn);
+		}
 	}
 	else {
 		sprintf(res, "{code=%d}", RPC_RESCODE_NOT_FOUND);

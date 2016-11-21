@@ -1,0 +1,23 @@
+1. RPC Server
+	- written in C, providing RPC function
+	- a function named 'add' has been registered for testing
+2. RPC Client
+	- written in C/Python, calling RPC functions registered in RPC Server
+	
+sample:
+
+>callee.exe 7
+rpc stub id: 7, 's'(start stub), 't'(stop stub) ...
+s
+rpc function [add] registered, function no: 0.
+rpc function [dec] registered, function no: 1.
+rpc function [dec] unregistered, function no: 1.
+
+>python caller.py 1 2
+load library S:\easyrpc\easerpc\Debug\easerpc.dll ok
+export rpc_initialize() ok
+export rpc_destory() ok
+export rpc_request() ok
+{u'tid': 52060, u'sum': 5, u'code': 0}
+{u'tid': 52060, u'sum': 5, u'code': 0}
+...
