@@ -1,13 +1,8 @@
 # easerpc
 interprocess rpc stub (Windows)
-===
+====
 * Windows supported
 * built & run in VS2013
-* start up rpc stub 2
->callee.exe 2
-
-* start rpc stub 1; then invoke "add(param1, param2)" at stub 2 from multiple threads at stub 1
->caller.exe 1 2
 
 sequence of rpc events 
 ====
@@ -20,3 +15,14 @@ sequence of rpc events
 * The server stub unpacks the parameters from the message. Unpacking the parameters is called unmarshalling.
 * Finally, the server stub calls the server procedure. The reply traces the same steps in the reverse direction.
 
+sample
+====
+* start up rpc stub 2
+```bash
+#callee.exe 2
+```
+
+* start rpc stub 1; then invoke "add(param1, param2)" at stub 2 from multiple threads at stub 1
+```bash
+#caller.exe 1 2
+```
