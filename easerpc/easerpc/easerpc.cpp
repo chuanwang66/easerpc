@@ -500,43 +500,43 @@ int rpc_request(short cid, short sid, const char *fname, const char *args, char 
 	lock_lock(server_lock);
 	if (shared_block_open(&server_sblock, server_sblock_name, SBLOCK_SIZE) != 0) {
 		rpc_server_offline = true;
-		ret = -5;
+		ret = -6;
 		goto cleanup_request;
 	}
 	memcpy_s(server_sblock.view, SBLOCK_SIZE, request_str, strlen(request_str) + 1);
 	lock_unlock(server_lock);
 	///////////////////////////////////////////////////////////////////////////////////
 
-	//notify server
 	server_event = event_open(server_event_name);
 	if (server_event == NULL) {
 		rpc_server_offline = true;
-		ret = -5;
+		ret = -7;
 		goto cleanup_request;
 	}
-	event_signal(server_event);
-
-	//waiting for response
 	client_event = event_open(client_event_name);
-	event_reset(client_event);	//set the state to "non-signaled", waiting for the server to set it to "signaled"
 	if (client_event == NULL) {
-		ret = -6;
+		ret = -8;
 		goto cleanup_request;
 	}
-
 	int event_wait_ret;
+
+	//notify server
+	event_reset(client_event);	//step 1: set the state to "non-signaled", waiting for the server to set it to "signaled"
+	event_signal(server_event);	//step 2: signal rpc server
+
+	//waiting for response		//step 3: wait for rpc server response
 	if (milliseconds == -1)
 		event_wait_ret = event_wait(client_event);	//blocking wait
-	else {
+	else
 		event_wait_ret = event_timedwait(client_event, 10000);	//timeout wait
-	}
+
 	if (event_wait_ret == EINVAL) {
-		ret = -7;
+		ret = -9;
 		printf("waiting for response error.\n");
 		goto cleanup_request;
 	}
 	else if (event_wait_ret == ETIMEDOUT) {
-		ret = -8;
+		ret = -10;
 		printf("waiting for response timeout.\n");
 		goto cleanup_request;
 	}
@@ -544,13 +544,13 @@ int rpc_request(short cid, short sid, const char *fname, const char *args, char 
 	/////////////////////////////////////////////////////////////////////////////////// recv response within lock
 	client_lock = lock_open(client_lock_name);
 	if (client_lock == NULL) {
-		ret = -9;
+		ret = -11;
 		goto cleanup_request;
 	}
 
 	lock_lock(client_lock);
 	if (shared_block_open(&client_sblock, client_sblock_name, SBLOCK_SIZE) != 0) {
-		ret = -10;
+		ret = -12;
 		goto cleanup_request;
 	}
 	memcpy(response_str, client_sblock.view, SBLOCK_SIZE);
@@ -569,7 +569,7 @@ int rpc_request(short cid, short sid, const char *fname, const char *args, char 
 	if (strlen(res_res) + 1 > response_len) {
 		memcpy(response, res_res, response_len - 1);
 		response[response_len - 1] = 0;
-		ret = -11;
+		ret = -13;
 		goto cleanup_request;
 	}
 	memcpy(response, res_res, strlen(res_res));
