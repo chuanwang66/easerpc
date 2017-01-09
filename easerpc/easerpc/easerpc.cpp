@@ -528,7 +528,7 @@ int rpc_request(short cid, short sid, const char *fname, const char *args, char 
 	if (milliseconds == -1)
 		event_wait_ret = event_wait(client_event);	//blocking wait
 	else
-		event_wait_ret = event_timedwait(client_event, 10000);	//timeout wait
+		event_wait_ret = event_timedwait(client_event, milliseconds);	//timeout wait
 
 	if (event_wait_ret == EINVAL) {
 		ret = -9;
