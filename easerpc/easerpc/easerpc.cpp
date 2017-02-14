@@ -258,6 +258,8 @@ int rpc_initialize(short nid) {
 	}
 
 	node_id = nid;
+	
+	printf("rpc_initialize(%d) ok.\n", node_id);
 
 rpc_initialize_ok:
 	return ret;
@@ -339,7 +341,7 @@ int rpc_register_function(const char *fname, ftype fpointer) {
 
 	lock_unlock(func_lock);
 
-	printf("rpc function [%s] registered, function no: %d.\n", fname, pos);
+	printf("rpc function [%s] registered.\n", fname);
 
 	return 0;
 
@@ -375,7 +377,7 @@ int rpc_unregister_function(const char *fname) {
 	func_pointer_array[pos] = NULL;
 	func_valid_array[pos] = false;
 
-	printf("rpc function [%s] unregistered, function no: %d.\n", fname, pos);
+	printf("rpc function [%s] unregistered.\n", fname);
 
 rpc_unregister_fail:
 	lock_unlock(func_lock);
@@ -396,14 +398,12 @@ void rpc_destory() {
 		CloseHandle(thread_handle);
 		thread_handle = NULL;
 	}
-	printf("server stub thread stopped.\n");
 
 	//stop server worker thread pool
 	if (workers_pool) {
 		delete workers_pool;
 		workers_pool = NULL;
 	}
-	printf("server worker thread pool stopped.\n");
 
 	//destroy rpc data structures
 	lock_lock(func_lock);
@@ -437,9 +437,9 @@ void rpc_destory() {
 		server_sblock = NULL;
 	}
 
-	printf("rpc data structures destroyed.\n");
-
 	node_id = -1;
+
+	printf("rpc_destory() ok.\n");
 }
 
 int rpc_request(short cid, short sid, const char *fname, const char *args, char *response, unsigned long response_len, long milliseconds) {
