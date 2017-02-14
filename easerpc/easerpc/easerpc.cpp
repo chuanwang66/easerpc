@@ -38,6 +38,7 @@ static void(*func_pointer_array[MAX_FUNC_NO])(const char *, char *, unsigned int
 /* server stub thread -- accept request(s) from client stub*/
 static HANDLE thread_handle = NULL;
 static volatile bool thread_stop = false;
+static volatile bool thread_active = false;
 
 /* server worker thread pool*/
 #define WORKERS_MIN_NUM 2
@@ -47,12 +48,12 @@ static ThreadPool *workers_pool = NULL;
 /* server stub objects */
 void *server_sblock_lock = NULL;
 void *server_sblock_event = NULL;
-shared_block server_sblock;
+struct shared_block *server_sblock = NULL;
 
 /* client stub objects */
 void *client_sblock_lock = NULL;
 void *client_sblock_event = NULL;
-shared_block client_sblock;
+struct shared_block *client_sblock = NULL;
 
 /* current node id, acting as both a server stub and a client stub*/
 static short node_id = -1;
@@ -60,7 +61,7 @@ static short node_id = -1;
 static int rpc_response(short sid, short cid, const char *response, const char *ctx, int seq);
 
 static void worker_routine() {
-	cJSON *request_json = cJSON_Parse((const char *)server_sblock.view);
+	cJSON *request_json = cJSON_Parse((const char *)server_sblock->view);
 
 	short cid = cJSON_GetObjectItem(request_json, "cid")->valueint;
 	short sid = cJSON_GetObjectItem(request_json, "sid")->valueint;
@@ -122,6 +123,8 @@ static DWORD CALLBACK thread_proc(LPVOID param) {
 		event_reset(server_sblock_event);
 	}
 
+	thread_active = false;
+
 	return 0;
 }
 
@@ -151,7 +154,7 @@ int rpc_initialize(short nid) {
 
 	//check existence of the same node id
 	{
-		void *tmp_lock = lock_open(server_sblock_lock_name);
+		void *tmp_lock = lock_open(client_sblock_lock_name);
 		if (tmp_lock) {
 			printf("node %d already exists.\n", nid);
 			lock_close(tmp_lock);
@@ -179,18 +182,22 @@ int rpc_initialize(short nid) {
 	server_sblock_lock = NULL;
 	server_sblock_event = NULL;
 
-	server_sblock.name = NULL;
-	server_sblock.size = 0;
-	server_sblock.mapFile = NULL;
-	server_sblock.view = NULL;
+	server_sblock = (struct shared_block *)malloc(sizeof(struct shared_block));
+	memset(server_sblock, 0, sizeof(struct shared_block));
+	server_sblock->name = NULL;
+	server_sblock->size = 0;
+	server_sblock->mapFile = NULL;
+	server_sblock->view = NULL;
 
 	client_sblock_lock = NULL;
 	client_sblock_event = NULL;
 
-	client_sblock.name = NULL;
-	client_sblock.size = 0;
-	client_sblock.mapFile = NULL;
-	client_sblock.view = NULL;
+	client_sblock = (struct shared_block *)malloc(sizeof(struct shared_block));
+	memset(client_sblock, 0, sizeof(struct shared_block));
+	client_sblock->name = NULL;
+	client_sblock->size = 0;
+	client_sblock->mapFile = NULL;
+	client_sblock->view = NULL;
 
 	server_sblock_lock = lock_create(server_sblock_lock_name);
 	if (server_sblock_lock == NULL) {
@@ -205,7 +212,7 @@ int rpc_initialize(short nid) {
 		goto rpc_initialize_fail;
 	}
 
-	if (shared_block_create(&server_sblock, server_sblock_name, SBLOCK_SIZE) != 0) {
+	if (shared_block_create(server_sblock, server_sblock_name, SBLOCK_SIZE) != 0) {
 		printf("rpc_initialize() failed: create server block failed.\n");
 		ret = -6;
 		goto rpc_initialize_fail;
@@ -224,7 +231,7 @@ int rpc_initialize(short nid) {
 		goto rpc_initialize_fail;
 	}
 
-	if (shared_block_create(&client_sblock, client_sblock_name, SBLOCK_SIZE) != 0) {
+	if (shared_block_create(client_sblock, client_sblock_name, SBLOCK_SIZE) != 0) {
 		printf("rpc_initialize() failed: create client block failed.\n");
 		ret = -9;
 		goto rpc_initialize_fail;
@@ -241,7 +248,9 @@ int rpc_initialize(short nid) {
 	//start rpc server stub thread
 	thread_stop = false;
 	thread_handle = CreateThread(NULL, 10 * 1024 * 1024, thread_proc, NULL, 0, NULL); //default stack size: 1M; we use 10M
-	if (thread_handle && thread_handle != INVALID_HANDLE_VALUE);
+	if (thread_handle && thread_handle != INVALID_HANDLE_VALUE) {
+		thread_active = true;
+	}
 	else {
 		printf("rpc_initialize() failed [%d].\n", GetLastError());
 		ret = -11;
@@ -254,7 +263,10 @@ rpc_initialize_ok:
 	return ret;
 
 rpc_initialize_fail:
-	shared_block_close(server_sblock);
+	func_lock = NULL;
+
+	if (server_sblock)
+		shared_block_close(*server_sblock);
 
 	event_close(server_sblock_event);
 	server_sblock_event = NULL;
@@ -262,7 +274,8 @@ rpc_initialize_fail:
 	lock_close(server_sblock_lock);
 	server_sblock_lock = NULL;
 
-	shared_block_close(client_sblock);
+	if (client_sblock)
+		shared_block_close(*client_sblock);
 
 	event_close(client_sblock_event);
 	client_sblock_event = NULL;
@@ -370,20 +383,29 @@ rpc_unregister_fail:
 }
 
 void rpc_destory() {
-	if (thread_stop == true)
-		return;
-	thread_stop = true;
+	//stop server stub thread
+	if (thread_active) {
+		thread_stop = true;
 
-	//stop main loop
-	if (server_sblock_event)
-		event_signal(server_sblock_event);
+		//stop main loop
+		if (server_sblock_event)
+			event_signal(server_sblock_event);
 
-	//waiting for main loop to stop
-	WaitForSingleObject(thread_handle, INFINITE);
-	CloseHandle(thread_handle);
-	thread_handle = NULL;
+		//waiting for main loop to stop
+		WaitForSingleObject(thread_handle, INFINITE);
+		CloseHandle(thread_handle);
+		thread_handle = NULL;
+	}
+	printf("server stub thread stopped.\n");
 
-	//cleanup
+	//stop server worker thread pool
+	if (workers_pool) {
+		delete workers_pool;
+		workers_pool = NULL;
+	}
+	printf("server worker thread pool stopped.\n");
+
+	//destroy rpc data structures
 	lock_lock(func_lock);
 	func_no = 0;
 	for (int i = 0; i < MAX_FUNC_NO; ++i) {
@@ -393,23 +415,29 @@ void rpc_destory() {
 	}
 	lock_unlock(func_lock);
 	lock_close(func_lock);
+	func_lock = NULL;
 
 	lock_close(client_sblock_lock);
 	client_sblock_lock = NULL;
 	event_close(client_sblock_event);
 	client_sblock_event = NULL;
-	shared_block_close(client_sblock);
+	if (client_sblock) {
+		shared_block_close(*client_sblock);
+		free(client_sblock);
+		client_sblock = NULL;
+	}
 
 	lock_close(server_sblock_lock);
 	server_sblock_lock = NULL;
 	event_close(server_sblock_event);
 	server_sblock_event = NULL;
-	shared_block_close(server_sblock);
-
-	if (workers_pool) {
-		delete workers_pool;
-		workers_pool = NULL;
+	if (server_sblock) {
+		shared_block_close(*server_sblock);
+		free(server_sblock);
+		server_sblock = NULL;
 	}
+
+	printf("rpc data structures destroyed.\n");
 
 	node_id = -1;
 }

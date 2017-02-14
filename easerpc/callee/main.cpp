@@ -69,6 +69,7 @@ int main(int argc, char* argv[])
 			while (getchar() != 't');
 
 			rpc_destory();
+			//rpc_destory();
 		}
 		else {
 			printf("rpc_server_initialize() failed: %d\n", ret);
