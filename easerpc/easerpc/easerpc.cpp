@@ -12,6 +12,12 @@
 #include "shared_block.h"
 #include "WindowsThreadPool\ThreadPool.h"
 
+#ifdef _DEBUG
+#	define PRINT(...) fprintf(stdout, __VA_ARGS__);
+#else
+#	define PRINT(fmt) do {} while (0);
+#endif
+
 const unsigned long SBLOCK_SIZE = 1024;	//shared memory size
 
 #define SHARED_OBJ_SIZE 128
@@ -90,12 +96,12 @@ static void worker_routine() {
 		}
 		catch (...) {
 			sprintf(res, "{code=%d}", RPC_RESCODE_FAIL);
-			printf("function [%s] execution error.\n", fn);
+			PRINT("function [%s] execution error.\n", fn);
 		}
 	}
 	else {
 		sprintf(res, "{code=%d}", RPC_RESCODE_NOT_FOUND);
-		printf("function [%s] not found.\n", fn);
+		PRINT("function [%s] not found.\n", fn);
 	}
 
 	rpc_response(sid, cid, res, ctx, seq);
@@ -132,7 +138,7 @@ int rpc_initialize(short nid) {
 	int ret = 0;
 
 	if (thread_handle && thread_handle != INVALID_HANDLE_VALUE) {
-		printf("cannot initialize stub twice.\n");
+		PRINT("cannot initialize stub twice.\n");
 		return -1;
 	}
 
@@ -156,7 +162,7 @@ int rpc_initialize(short nid) {
 	{
 		void *tmp_lock = lock_open(client_sblock_lock_name);
 		if (tmp_lock) {
-			printf("node %d already exists.\n", nid);
+			PRINT("node %d already exists.\n", nid);
 			lock_close(tmp_lock);
 			return -2;
 		}
@@ -165,7 +171,7 @@ int rpc_initialize(short nid) {
 	//rpc function registry
 	func_lock = lock_create(NULL);
 	if (func_lock == NULL) {
-		printf("create rpc function lock failed.\n");
+		PRINT("create rpc function lock failed.\n");
 		return -3;
 	}
 
@@ -201,38 +207,38 @@ int rpc_initialize(short nid) {
 
 	server_sblock_lock = lock_create(server_sblock_lock_name);
 	if (server_sblock_lock == NULL) {
-		printf("rpc_initialize() failed: create server lock failed.\n");
+		PRINT("rpc_initialize() failed: create server lock failed.\n");
 		ret = -4;
 		goto rpc_initialize_fail;
 	}
 	server_sblock_event = event_create(EVENT_TYPE_MANUAL, server_sblock_event_name);
 	if (server_sblock_event == NULL) {
-		printf("rpc_initialize() failed: create server event failed.\n");
+		PRINT("rpc_initialize() failed: create server event failed.\n");
 		ret = -5;
 		goto rpc_initialize_fail;
 	}
 
 	if (shared_block_create(server_sblock, server_sblock_name, SBLOCK_SIZE) != 0) {
-		printf("rpc_initialize() failed: create server block failed.\n");
+		PRINT("rpc_initialize() failed: create server block failed.\n");
 		ret = -6;
 		goto rpc_initialize_fail;
 	}
 
 	client_sblock_lock = lock_create(client_sblock_lock_name);
 	if (client_sblock_lock == NULL) {
-		printf("rpc_initialize() failed: create client lock failed.\n");
+		PRINT("rpc_initialize() failed: create client lock failed.\n");
 		ret = -7;
 		goto rpc_initialize_fail;
 	}
 	client_sblock_event = event_create(EVENT_TYPE_MANUAL, client_sblock_event_name);
 	if (client_sblock_event == NULL) {
-		printf("rpc_initialize() failed: create client event failed.\n");
+		PRINT("rpc_initialize() failed: create client event failed.\n");
 		ret = -8;
 		goto rpc_initialize_fail;
 	}
 
 	if (shared_block_create(client_sblock, client_sblock_name, SBLOCK_SIZE) != 0) {
-		printf("rpc_initialize() failed: create client block failed.\n");
+		PRINT("rpc_initialize() failed: create client block failed.\n");
 		ret = -9;
 		goto rpc_initialize_fail;
 	}
@@ -240,7 +246,7 @@ int rpc_initialize(short nid) {
 	//start rpc server worker threads (thread pool)
 	workers_pool = new ThreadPool(WORKERS_MIN_NUM, WORKERS_MAX_NUM);
 	if (workers_pool == NULL) {
-		printf("rpc_initialize() failed: create workers thread pool failed.\n");
+		PRINT("rpc_initialize() failed: create workers thread pool failed.\n");
 		ret = -10;
 		goto rpc_initialize_fail;
 	}
@@ -252,14 +258,14 @@ int rpc_initialize(short nid) {
 		thread_active = true;
 	}
 	else {
-		printf("rpc_initialize() failed [%d].\n", GetLastError());
+		PRINT("rpc_initialize() failed [%d].\n", GetLastError());
 		ret = -11;
 		goto rpc_initialize_fail;
 	}
 
 	node_id = nid;
 	
-	printf("rpc_initialize(%d) ok.\n", node_id);
+	PRINT("rpc_initialize(%d) ok.\n", node_id);
 
 rpc_initialize_ok:
 	return ret;
@@ -314,7 +320,7 @@ int rpc_register_function(const char *fname, ftype fpointer) {
 		}
 	}
 	if (exist) {
-		printf("rpc function [%s] exists.\n", fname);
+		PRINT("rpc function [%s] exists.\n", fname);
 		ret = -3;
 		goto rpc_register_fail;
 	}
@@ -328,7 +334,7 @@ int rpc_register_function(const char *fname, ftype fpointer) {
 		}
 	}
 	if (pos == -1) {
-		printf("function registry is full.\n");
+		PRINT("function registry is full.\n");
 		ret = -4;
 		goto rpc_register_fail;
 	}
@@ -341,7 +347,7 @@ int rpc_register_function(const char *fname, ftype fpointer) {
 
 	lock_unlock(func_lock);
 
-	printf("rpc function [%s] registered.\n", fname);
+	PRINT("rpc function [%s] registered.\n", fname);
 
 	return 0;
 
@@ -367,7 +373,7 @@ int rpc_unregister_function(const char *fname) {
 		}
 	}
 	if (pos == -1) {
-		printf("rpc function [%s] does not exist.\n", fname);
+		PRINT("rpc function [%s] does not exist.\n", fname);
 		ret = -2;
 		goto rpc_unregister_fail;
 	}
@@ -377,7 +383,7 @@ int rpc_unregister_function(const char *fname) {
 	func_pointer_array[pos] = NULL;
 	func_valid_array[pos] = false;
 
-	printf("rpc function [%s] unregistered.\n", fname);
+	PRINT("rpc function [%s] unregistered.\n", fname);
 
 rpc_unregister_fail:
 	lock_unlock(func_lock);
@@ -439,7 +445,7 @@ void rpc_destory() {
 
 	node_id = -1;
 
-	printf("rpc_destory() ok.\n");
+	PRINT("rpc_destory() ok.\n");
 }
 
 int rpc_request(short cid, short sid, const char *fname, const char *args, char *response, unsigned long response_len, long milliseconds) {
@@ -509,7 +515,7 @@ int rpc_request(short cid, short sid, const char *fname, const char *args, char 
 	if (ctx) cJSON_AddStringToObject(request_json, "ctx", ctx);
 
 	char *request_str = cJSON_Print(request_json);
-	//printf("send request: %s\n", request_str);
+	//PRINT("send request: %s\n", request_str);
 
 	if (SBLOCK_SIZE < strlen(request_str) + 1) {	//request too long
 		ret = -4;
@@ -559,12 +565,12 @@ int rpc_request(short cid, short sid, const char *fname, const char *args, char 
 
 	if (event_wait_ret == EINVAL) {
 		ret = -9;
-		printf("waiting for response error.\n");
+		PRINT("waiting for response error.\n");
 		goto cleanup_request;
 	}
 	else if (event_wait_ret == ETIMEDOUT) {
 		ret = -10;
-		printf("waiting for response timeout.\n");
+		PRINT("waiting for response timeout.\n");
 		goto cleanup_request;
 	}
 
@@ -602,7 +608,7 @@ int rpc_request(short cid, short sid, const char *fname, const char *args, char 
 	memcpy(response, res_res, strlen(res_res));
 	response[strlen(res_res)] = 0;
 
-	//printf("response: res_sid:%d ==> res_cid:%d, res_seq=%d\n, res_res=%s\n, res_ctx=%s\n",
+	//PRINT("response: res_sid:%d ==> res_cid:%d, res_seq=%d\n, res_res=%s\n, res_ctx=%s\n",
 	//	res_sid, res_cid, res_seq, res_res, res_ctx);
 
 cleanup_request:
@@ -630,7 +636,7 @@ cleanup_request:
 	}
 
 	if (rpc_server_offline) {
-		printf("rpc server stub %d offline.\n", sid);
+		PRINT("rpc server stub %d offline.\n", sid);
 	}
 
 	return ret;
@@ -696,7 +702,7 @@ cleanup_response:
 	//ALWAYS signal back!
 	client_event = event_open(client_event_name);	//never fail except the client stub is offline
 	int sig_ret = event_signal(client_event);	//TODO sometimes this event would never send back!?
-	if (sig_ret != 0) printf("signal back failed.\n");
+	if (sig_ret != 0) PRINT("signal back failed.\n");
 	event_close(client_event);
 	client_event = NULL;
 
@@ -716,7 +722,7 @@ int rpc_request2(short cid, short sid, const char *fname, const char *args, char
 
 	rpc_request_lock = lock_create(REQ_LOCK_OBJNAME); //create at the first time, otherwise just open
 	if (rpc_request_lock == NULL) {
-		printf("create rpc_request_lock failed.\n");
+		PRINT("create rpc_request_lock failed.\n");
 		ret = -20;
 		goto rpc_request2_exit;
 	}
