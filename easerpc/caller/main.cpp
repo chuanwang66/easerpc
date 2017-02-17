@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 	}
 	Sleep(500);
 
-	HANDLE request_thread[3];
+	HANDLE request_thread[REQUEST_THREAD_NUM];
 	for (int i = 0; i < REQUEST_THREAD_NUM; ++i) {
 		request_thread[i] = CreateThread(NULL, 0, request_proc, NULL, 0, NULL);
 	}
